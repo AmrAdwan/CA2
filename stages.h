@@ -97,7 +97,7 @@ struct M_WBRegisters
   MemAddress NPC{0};
   // MemAddress globalPC{0};
   RegValue   regD = 0;
-  RegValue   memRead = 0;
+  RegValue   memRead{};
   RegValue   ALUout = 0;
   MemAddress linkReg{0};
   ControlSignals signals{};

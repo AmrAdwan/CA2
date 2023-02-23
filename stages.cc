@@ -132,14 +132,10 @@ InstructionDecodeStage::propagate()
 
   if (decoder.getOpcode() == opcode::JAL) 
   {
-
-    // std::cout << "JALJALJAL " << '\n';
     RD = 9;
     regfile.setRD(RD);
 
   }
-  // }
-  // std::cout << "opcode = " << uint64_t(signals.getopcode()) << '\n';
   if (decoder.getOpcode() == opcode::JR ) 
   {
     // regfile.setRS1( 9 );
@@ -169,9 +165,6 @@ void InstructionDecodeStage::clockPulse()
     id_ex.regB = regfile.getReadData2();
     id_ex.regD = decoder.getD();
     id_ex.immediate = decoder.getImmediate();
-    std::cout << "regA = " << static_cast<int>(id_ex.regA) <<'\n';
-    // std::cout << "regB = " << static_cast<int>(id_ex.regB) <<'\n';
-    std::cout << "immediate = " << static_cast<int>(id_ex.immediate) <<'\n';
   // }
   if (decoder.getOpcode() == opcode::SB)
   {
@@ -179,7 +172,6 @@ void InstructionDecodeStage::clockPulse()
   }
   else if (decoder.getOpcode() == opcode::SW)
   {
-    // std::cout << "id_ex.regA = " << id_ex.regA << '\n'; 
     id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
   }
 
@@ -202,15 +194,11 @@ void InstructionDecodeStage::clockPulse()
     issued = 1;
     NPC = PC + signals.add(decoder);
     linkReg = PC + 8;
-    // regfile.setRD(id_ex.linkReg);
   }
   if (decoder.getOpcode() == opcode::JR)
   {
-    // regfile.setRS2(id_ex.linkReg);
     issued = 1;
     NPC = id_ex.regB;
-    // std::cout << "regBBBB = " << id_ex.regB << '\n';
-    // NPC = 65616;
   }
   // }
   id_ex.PC = PC;
@@ -291,7 +279,6 @@ ExecuteStage::clockPulse()
    * the ALU computes the effective memory address.
    */
   ex_m.ALUout = alu.getResult();
-  // std::cout << "alu.getResult = " << alu.getResult() << '\n';
   // if (signals.getType() == InstructionType::typeJ)
   // {
   if (signals.getopcode() == opcode::JAL)
@@ -345,8 +332,16 @@ MemoryStage::propagate()
   }
   else if (signals.getType() == InstructionType::typeS)
   {
-    std::cout << "ALUUUU = " << ALUout << '\n';
     dataMemory.setAddress(ALUout);
+  }
+
+  else if (signals.getType() == InstructionType::typeI)
+  {
+    if (signals.getopcode() == opcode::LWZ)
+    {
+      dataMemory.setAddress(ALUout);
+      dataMemory.setSize(ex_m.readSize);
+    }
   }
   
   dataMemory.setSize(ex_m.readSize);
@@ -366,6 +361,7 @@ MemoryStage::clockPulse()
   if (actionMem == MemorySelector::load) 
   {
     dataMemory.setReadEnable(true); // to let the load instruction to read
+    dataMemory.setDataIn(regD);
     m_wb.memRead = dataMemory.getDataOut(memReadExtend);
     dataMemory.setReadEnable(false);
   } 
@@ -406,6 +402,16 @@ WriteBackStage::propagate()
    */
   actionWBOut = m_wb.actionWBOut;
   regfile.setRD(m_wb.regD);
+
+  if (signals.getType() == InstructionType::typeI)
+  {
+    if (signals.getopcode() == opcode::LWZ ||
+        signals.getopcode() == opcode::LBS ||
+        signals.getopcode() == opcode::LBZ)
+    {
+      regfile.setWriteData(m_wb.memRead);
+    }
+  }
   
   // Figuring out what to write, if any.
   Mux<RegValue, WriteBackInputSelector> mux;
