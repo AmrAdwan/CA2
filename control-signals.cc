@@ -15,7 +15,6 @@ RegValue ControlSignals::add(InstructionDecoder & decoder)
   }
   else if (decoder.getOpcode() == opcode::JR || decoder.getOpcode() == opcode::JALR)
   {
-    std::cout << "jrjrjrjrjrjrj" << '\n';
     return decoder.getB();
   }
   // return RegValue{0};

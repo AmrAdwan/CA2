@@ -96,20 +96,19 @@ InstructionDecodeStage::propagate()
   // globalPC = if_id.globalPC;
   decoder.setInstructionWord(if_id.instruction);
   signals.setInstruction(decoder);
-  if (decoder.getOpcode() != opcode::NOP ||
-      decoder.getInstructionType() == InstructionType::typeR ||
-      decoder.getInstructionType() == InstructionType::typeS)
-  {
+  // if (decoder.getOpcode() != opcode::NOP ||
+  //     decoder.getInstructionType() == InstructionType::typeR ||
+  //     decoder.getInstructionType() == InstructionType::typeS)
+  // {
     regfile.setRS1(decoder.getA()); // set the value of Register A
     regfile.setRS2(decoder.getB()); // set the value of Register B
-    std::cout << " .........getA = " << int(decoder.getA()) << '\n';
     RD = decoder.getD();
 
     WriteBackOutputSelector shouldWrite = WriteBackOutputSelector::none;
     regfile.setRD(RD); // set the value of Register D
     regfile.setWriteData(RegValue{0});
     regfile.setWriteEnable(shouldWrite == WriteBackOutputSelector::write);
-  }
+  // }
 
   /* debug mode: dump decoded instructions to cerr.
    * In case of no pipelining: always dump.
@@ -162,25 +161,38 @@ void InstructionDecodeStage::clockPulse()
   // id_ex.NPC = NPC;
   // id_ex.globalPC = globalPC;
   id_ex.signals = signals;
-  if (decoder.getOpcode() != opcode::NOP || 
-    decoder.getInstructionType() == InstructionType::typeR ||
-    decoder.getInstructionType() == InstructionType::typeS)
-  {
+  // if (decoder.getOpcode() != opcode::NOP || 
+  //   decoder.getInstructionType() == InstructionType::typeR ||
+  //   decoder.getInstructionType() == InstructionType::typeS)
+  // {
     id_ex.regA = regfile.getReadData1();
     id_ex.regB = regfile.getReadData2();
-  }
+    id_ex.regD = decoder.getD();
+    id_ex.immediate = decoder.getImmediate();
+    std::cout << "regA = " << static_cast<int>(id_ex.regA) <<'\n';
+    // std::cout << "regB = " << static_cast<int>(id_ex.regB) <<'\n';
+    std::cout << "immediate = " << static_cast<int>(id_ex.immediate) <<'\n';
+  // }
   if (decoder.getOpcode() == opcode::SB)
   {
     id_ex.regB &= 0xff; // to get the lower 8-bits from Register B
   }
   else if (decoder.getOpcode() == opcode::SW)
   {
-    std::cout << "id_ex.regA = " << id_ex.regA << '\n'; 
+    // std::cout << "id_ex.regA = " << id_ex.regA << '\n'; 
     id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
   }
 
-  id_ex.regD = decoder.getD();
-  id_ex.immediate = decoder.getImmediate();
+  if (decoder.getOpcode() == opcode::MACRC)
+  {
+    if (decoder.getOpcode2() == opcode2::MOVHI)
+    {
+      id_ex.immediate <<= 16;
+    }
+  }
+
+  // id_ex.regD = decoder.getD();
+  // id_ex.immediate = decoder.getImmediate();
   // if (decoder.getInstructionType() == InstructionType::typeJ)
   // {
     // issued = 1;
@@ -279,6 +291,7 @@ ExecuteStage::clockPulse()
    * the ALU computes the effective memory address.
    */
   ex_m.ALUout = alu.getResult();
+  // std::cout << "alu.getResult = " << alu.getResult() << '\n';
   // if (signals.getType() == InstructionType::typeJ)
   // {
   if (signals.getopcode() == opcode::JAL)
@@ -330,7 +343,9 @@ MemoryStage::propagate()
   {
     dataMemory.setAddress(RD);
   }
-  else {
+  else if (signals.getType() == InstructionType::typeS)
+  {
+    std::cout << "ALUUUU = " << ALUout << '\n';
     dataMemory.setAddress(ALUout);
   }
   
