@@ -9,7 +9,8 @@
 RegValue ControlSignals::add(InstructionDecoder & decoder)
 {
 
-  if (decoder.getOpcode() == opcode::J || decoder.getOpcode() == opcode::JAL)
+  if (decoder.getOpcode() == opcode::J || decoder.getOpcode() == opcode::JAL ||
+      decoder.getOpcode() == opcode::BF)
   {
     return decoder.getImmediate() << 2;
   }
@@ -52,6 +53,12 @@ ALUOp ControlSignals::getALUOp() const
     case opcode::SW:
     case opcode::SB:
       return ALUOp::ADD;
+
+    case opcode::SFLES:
+      return ALUOp::LE;
+
+    case opcode::SFNE:
+      return ALUOp::NEQ;
 
 
     // case opcode::JR:
@@ -108,6 +115,8 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
     case opcode::SW:
     case opcode::SB:
     case opcode::ORI:
+    case opcode::SFLES:
+    case opcode::SFNE:
       return InputSelectorA::rs1;
     case opcode::ADD:
       switch (op2) 
@@ -176,6 +185,8 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
         return InputSelectorB::immediate;
       }
     case opcode::JR:
+    case opcode::SFLES:
+    case opcode::SFNE:
       return InputSelectorB::rs2;
     case opcode::ADDI:
     case opcode::LBS:

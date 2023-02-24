@@ -6,6 +6,7 @@
  */
 
 #include "stages.h"
+#include "alu.h"
 #include "arch.h"
 #include "control-signals.h"
 #include "inst-decoder.h"
@@ -182,6 +183,14 @@ void InstructionDecodeStage::clockPulse()
       id_ex.immediate <<= 16;
     }
   }
+  if (decoder.getOpcode() == opcode::BF)
+  {
+    if (flag)
+    {
+      issued = 1;
+      NPC = PC + signals.add(decoder);
+    }
+  }
 
   // id_ex.regD = decoder.getD();
   // id_ex.immediate = decoder.getImmediate();
@@ -200,6 +209,21 @@ void InstructionDecodeStage::clockPulse()
     issued = 1;
     NPC = id_ex.regB;
   }
+  if (signals.getopcode() == opcode::J)
+  {
+    issued = 1;
+    NPC = PC + signals.add(decoder);
+  }
+
+  if (signals.getopcode() == opcode::SFLES)
+  {
+    flag = (id_ex.regA <= id_ex.regB);
+  }
+
+  // if (signals.getopcode() == opcode::SFNE)
+  // {
+  //   flag = (id_ex.regA != id_ex.regB);
+  // }
   // }
   id_ex.PC = PC;
   // id_ex.NPC = NPC;
@@ -209,9 +233,9 @@ void InstructionDecodeStage::clockPulse()
   id_ex.actionALUA = signals.getSelectorALUInputA(); // get the first input of the ALU
   id_ex.actionALUB = signals.getSelectorALUInputB(); // // get the second input of the ALU
   id_ex.actionMem = signals.getSelectorMemory(); // get if the instruction is a memory instruction
-  id_ex.actionWBIn = signals.getSelectorWBInput();
   id_ex.actionWBOut = signals.getSelectorWBOutput();
   id_ex.action_ALU = signals.getALUOp(); // get the ALU operation
+  id_ex.actionWBIn = signals.getSelectorWBInput();
   id_ex.memReadExtend = signals.getMemReadExtend();
   id_ex.readSize = signals.getMemSize();
 }
@@ -244,29 +268,33 @@ ExecuteStage::propagate()
   immediate = id_ex.immediate;
 
   // if (signals.getType() != InstructionType::typeJ)
-
-  { // Set input A.
-      Mux<RegValue, InputSelectorA> mux;
-      mux.setInput(InputSelectorA::rs1, regA);
-      mux.setInput(InputSelectorA::rd, regD);
-      /* Once forwarding is implemented:
-        * TODO: Add setInput() calls for forwarded values.
-        * TODO: Somehow choose the selector based on id_ex.actionALUA and the
-        *       forwarded values. */
-      mux.setSelector(id_ex.actionALUA);
-      alu.setA(mux.getOutput());
-  }
-  
-  { // Set input B.
-      Mux<RegValue, InputSelectorB> mux;
-      mux.setInput(InputSelectorB::rs2, id_ex.regB);
-      mux.setInput(InputSelectorB::immediate, id_ex.immediate);
-      /* Once forwarding is implemented:
-        * TODO: Add setInput() calls for forwarded values.
-        * TODO: Somehow choose the selector based on id_ex.actionALUA and the
-        *       forwarded values. */
-      mux.setSelector(id_ex.actionALUB);
-      alu.setB(mux.getOutput());
+  if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
+      signals.getopcode() != opcode::J || signals.getopcode() != opcode::JAL ||
+      signals.getopcode() != opcode::JALR || signals.getopcode() != opcode::NOP)
+  {
+    { // Set input A.
+        Mux<RegValue, InputSelectorA> mux;
+        mux.setInput(InputSelectorA::rs1, regA);
+        mux.setInput(InputSelectorA::rd, regD);
+        /* Once forwarding is implemented:
+          * TODO: Add setInput() calls for forwarded values.
+          * TODO: Somehow choose the selector based on id_ex.actionALUA and the
+          *       forwarded values. */
+        mux.setSelector(id_ex.actionALUA);
+        alu.setA(mux.getOutput());
+    }
+    
+    { // Set input B.
+        Mux<RegValue, InputSelectorB> mux;
+        mux.setInput(InputSelectorB::rs2, id_ex.regB);
+        mux.setInput(InputSelectorB::immediate, id_ex.immediate);
+        /* Once forwarding is implemented:
+          * TODO: Add setInput() calls for forwarded values.
+          * TODO: Somehow choose the selector based on id_ex.actionALUA and the
+          *       forwarded values. */
+        mux.setSelector(id_ex.actionALUB);
+        alu.setB(mux.getOutput());
+    }
   }
   alu.setOp(id_ex.action_ALU);
 }
@@ -278,7 +306,14 @@ ExecuteStage::clockPulse()
    * includes the result (output) of the ALU. For memory-operations
    * the ALU computes the effective memory address.
    */
-  ex_m.ALUout = alu.getResult();
+  
+  if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
+      signals.getopcode() != opcode::J ||  signals.getopcode() != opcode::JALR || 
+      signals.getopcode() != opcode::NOP)
+  {
+    ex_m.ALUout = alu.getResult();
+  }
+
   // if (signals.getType() == InstructionType::typeJ)
   // {
   if (signals.getopcode() == opcode::JAL)
@@ -414,12 +449,14 @@ WriteBackStage::propagate()
   }
   
   // Figuring out what to write, if any.
-  Mux<RegValue, WriteBackInputSelector> mux;
-  mux.setInput(WriteBackInputSelector::memory, m_wb.memRead);
-  mux.setInput(WriteBackInputSelector::outputALU, m_wb.ALUout);
-  mux.setSelector(m_wb.actionWBIn);
-  regfile.setWriteData(mux.getOutput());
-
+  if (signals.getopcode() != opcode::BF)
+  {
+    Mux<RegValue, WriteBackInputSelector> mux;
+    mux.setInput(WriteBackInputSelector::memory, m_wb.memRead);
+    mux.setInput(WriteBackInputSelector::outputALU, m_wb.ALUout);
+    mux.setSelector(m_wb.actionWBIn);
+    regfile.setWriteData(mux.getOutput());
+  }
   if (signals.getopcode() == opcode::JAL)
   {
     regfile.setRD(m_wb.RD);

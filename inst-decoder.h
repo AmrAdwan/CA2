@@ -316,6 +316,7 @@ enum class ALUOp
   AND,
   OR,
   EQ,
+  NEQ,
   GE,
   LE,
   LT,

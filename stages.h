@@ -226,6 +226,7 @@ class InstructionDecodeStage : public Stage
                            InstructionDecoder &decoder,
                            uint64_t &nInstrIssued,
                            uint64_t &nStalls,
+                           bool &flag,
                            MemAddress &NPC,
                            size_t &issued,
                            MemAddress &globalPC,
@@ -234,7 +235,7 @@ class InstructionDecodeStage : public Stage
       if_id(if_id), id_ex(id_ex),
       regfile(regfile), decoder(decoder),
       nInstrIssued(nInstrIssued), nStalls(nStalls),
-      NPC(NPC), issued(issued), globalPC(globalPC), debugMode(debugMode)
+      flag(flag), NPC(NPC), issued(issued), globalPC(globalPC), debugMode(debugMode)
     { }
 
     void propagate() override;
@@ -251,6 +252,7 @@ class InstructionDecodeStage : public Stage
     uint64_t &nStalls;
     MemAddress linkReg{0};
     size_t &issued;
+    bool &flag;
 
 
     bool debugMode = false;

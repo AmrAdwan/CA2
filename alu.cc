@@ -41,19 +41,24 @@ ALU::getResult()
       return  A | B;
     case ALUOp::EQ:
       if (A == B)
-        return RegValue{0};
-      return RegValue{1};
+        return RegValue{1};
+      return RegValue{0};
+    case ALUOp::NEQ:
+      if (A != B)
+        return RegValue{1};
+      return RegValue{0};
     case ALUOp::GE:
       if (A >= B)
         return RegValue{1};
       return RegValue{0};
-    case ALUOp::LT:
+    case ALUOp::LE:
       if (A <= B)
         return RegValue{1};
       return RegValue{0};
     case ALUOp::SRA:
       return A >> B;
     case ALUOp::SLL:
+      B &= 0b1111;
       return A << B;
     case ALUOp::MOVHI:
       return B;
