@@ -56,6 +56,7 @@ ALU::getResult()
         return RegValue{1};
       return RegValue{0};
     case ALUOp::SRA:
+      B &= 0b1111;
       return A >> B;
     case ALUOp::SLL:
       B &= 0b1111;

@@ -220,10 +220,14 @@ void InstructionDecodeStage::clockPulse()
     flag = (id_ex.regA <= id_ex.regB);
   }
 
-  // if (signals.getopcode() == opcode::SFNE)
-  // {
-  //   flag = (id_ex.regA != id_ex.regB);
-  // }
+  if (signals.getopcode() == opcode::SFNE)
+  {
+    flag = (id_ex.regA != id_ex.regB);
+  }
+  if (signals.getopcode() == opcode::SFGES)
+  {
+    flag = (id_ex.regA >= id_ex.regB);
+  }
   // }
   id_ex.PC = PC;
   // id_ex.NPC = NPC;
