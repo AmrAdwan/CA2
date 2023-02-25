@@ -10,7 +10,7 @@ RegValue ControlSignals::add(InstructionDecoder & decoder)
 {
 
   if (decoder.getOpcode() == opcode::J || decoder.getOpcode() == opcode::JAL ||
-      decoder.getOpcode() == opcode::BF)
+      decoder.getOpcode() == opcode::BF || decoder.getOpcode() == opcode::BNF)
   {
     return decoder.getImmediate() << 2;
   }
@@ -276,6 +276,7 @@ uint8_t ControlSignals::getMemSize() const
     case opcode::LWS:
     case opcode::LWZ:
     case opcode::SW:
+    case opcode::LWA:
       return 4u;
     case opcode::SB:
       return 1u;

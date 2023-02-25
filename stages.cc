@@ -192,6 +192,15 @@ void InstructionDecodeStage::clockPulse()
     }
   }
 
+  if (signals.getopcode() == opcode::BNF)
+  {
+    if (!flag)
+    {
+      issued = 1;
+      NPC = PC + signals.add(decoder);
+    }
+  }
+
   // id_ex.regD = decoder.getD();
   // id_ex.immediate = decoder.getImmediate();
   // if (decoder.getInstructionType() == InstructionType::typeJ)
@@ -215,6 +224,11 @@ void InstructionDecodeStage::clockPulse()
     NPC = PC + signals.add(decoder);
   }
 
+  if (signals.getopcode() == opcode::SFEQ)
+  {
+    flag = (id_ex.regA == id_ex.regB);
+  }
+
   if (signals.getopcode() == opcode::SFLES)
   {
     flag = (id_ex.regA <= id_ex.regB);
@@ -228,6 +242,7 @@ void InstructionDecodeStage::clockPulse()
   {
     flag = (id_ex.regA >= id_ex.regB);
   }
+
   // }
   id_ex.PC = PC;
   // id_ex.NPC = NPC;
@@ -274,7 +289,8 @@ ExecuteStage::propagate()
   // if (signals.getType() != InstructionType::typeJ)
   if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
       signals.getopcode() != opcode::J || signals.getopcode() != opcode::JAL ||
-      signals.getopcode() != opcode::JALR || signals.getopcode() != opcode::NOP)
+      signals.getopcode() != opcode::JALR || signals.getopcode() != opcode::BNF ||
+      signals.getopcode() != opcode::NOP)
   {
     { // Set input A.
         Mux<RegValue, InputSelectorA> mux;
@@ -313,7 +329,7 @@ ExecuteStage::clockPulse()
   
   if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
       signals.getopcode() != opcode::J ||  signals.getopcode() != opcode::JALR || 
-      signals.getopcode() != opcode::NOP)
+      signals.getopcode() != opcode::BNF || signals.getopcode() != opcode::NOP)
   {
     ex_m.ALUout = alu.getResult();
   }
@@ -374,14 +390,14 @@ MemoryStage::propagate()
     dataMemory.setAddress(ALUout);
   }
 
-  else if (signals.getType() == InstructionType::typeI)
-  {
+  // else if (signals.getType() == InstructionType::typeI)
+  // {
     if (signals.getopcode() == opcode::LWZ)
     {
       dataMemory.setAddress(ALUout);
       dataMemory.setSize(ex_m.readSize);
     }
-  }
+  // }
   
   dataMemory.setSize(ex_m.readSize);
   muxPC.setSelector(ex_m.actionPC);
@@ -442,15 +458,15 @@ WriteBackStage::propagate()
   actionWBOut = m_wb.actionWBOut;
   regfile.setRD(m_wb.regD);
 
-  if (signals.getType() == InstructionType::typeI)
-  {
+  // if (signals.getType() == InstructionType::typeI)
+  // {
     if (signals.getopcode() == opcode::LWZ ||
         signals.getopcode() == opcode::LBS ||
         signals.getopcode() == opcode::LBZ)
     {
       regfile.setWriteData(m_wb.memRead);
     }
-  }
+  // }
   
   // Figuring out what to write, if any.
   if (signals.getopcode() != opcode::BF)

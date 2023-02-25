@@ -29,7 +29,6 @@ ALU::getResult()
  switch (op)
   {
     case ALUOp::ADD:
-    // std::cout << "A " << A << " + " << "B " << B << '\n';
       return A + B;
     case ALUOp::JUMP:
       return A + (B << 2);
