@@ -167,39 +167,40 @@ void InstructionDecodeStage::clockPulse()
     id_ex.regD = decoder.getD();
     id_ex.immediate = decoder.getImmediate();
   // }
-  if (decoder.getOpcode() == opcode::SB)
-  {
-    id_ex.regB &= 0xff; // to get the lower 8-bits from Register B
-  }
-  else if (decoder.getOpcode() == opcode::SW)
-  {
-    id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
-  }
 
-  if (decoder.getOpcode() == opcode::MACRC)
-  {
-    if (decoder.getOpcode2() == opcode2::MOVHI)
-    {
-      id_ex.immediate <<= 16;
-    }
-  }
-  if (decoder.getOpcode() == opcode::BF)
-  {
-    if (flag)
-    {
-      issued = 1;
-      NPC = PC + signals.add(decoder);
-    }
-  }
+  // if (decoder.getOpcode() == opcode::SB)
+  // {
+  //   id_ex.regB &= 0xff; // to get the lower 8-bits from Register B
+  // }
+  // else if (decoder.getOpcode() == opcode::SW)
+  // {
+  //   id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
+  // }
 
-  if (signals.getopcode() == opcode::BNF)
-  {
-    if (!flag)
-    {
-      issued = 1;
-      NPC = PC + signals.add(decoder);
-    }
-  }
+  // if (decoder.getOpcode() == opcode::MACRC)
+  // {
+  //   if (decoder.getOpcode2() == opcode2::MOVHI)
+  //   {
+  //     id_ex.immediate <<= 16;
+  //   }
+  // }
+  // if (decoder.getOpcode() == opcode::BF)
+  // {
+  //   if (flag)
+  //   {
+  //     issued = 1;
+  //     NPC = PC + signals.add(decoder);
+  //   }
+  // }
+
+  // if (signals.getopcode() == opcode::BNF)
+  // {
+  //   if (!flag)
+  //   {
+  //     issued = 1;
+  //     NPC = PC + signals.add(decoder);
+  //   }
+  // }
 
   // id_ex.regD = decoder.getD();
   // id_ex.immediate = decoder.getImmediate();
@@ -207,41 +208,97 @@ void InstructionDecodeStage::clockPulse()
   // {
     // issued = 1;
     // NPC = PC + signals.add(decoder);
-  if (decoder.getOpcode() == opcode::JAL)
-  {
-    issued = 1;
-    NPC = PC + signals.add(decoder);
-    linkReg = PC + 8;
-  }
-  if (decoder.getOpcode() == opcode::JR)
-  {
-    issued = 1;
-    NPC = id_ex.regB;
-  }
-  if (signals.getopcode() == opcode::J)
-  {
-    issued = 1;
-    NPC = PC + signals.add(decoder);
-  }
 
-  if (signals.getopcode() == opcode::SFEQ)
+  switch (decoder.getOpcode()) 
   {
-    flag = (id_ex.regA == id_ex.regB);
+    case opcode::SB:
+      id_ex.regB &= 0xff; // to get the lower 8-bits from Register B
+      break;
+    case opcode::SW:
+      id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
+      break;
+    case opcode::BF:
+      if (flag)
+      {
+        issued = 1;
+        NPC = PC + signals.add(decoder);
+      }
+      break;
+    case opcode::BNF:
+      if (!flag)
+      {
+        issued = 1;
+        NPC = PC + signals.add(decoder);
+      }
+      break;
+    case opcode::MACRC:
+      if (decoder.getOpcode2() == opcode2::MOVHI)
+      {
+        id_ex.immediate <<= 16;
+      }
+      break;
+    case opcode::JAL:
+      issued = 1;
+      NPC = PC + signals.add(decoder);
+      linkReg = PC + 8;
+      break;
+    case opcode::JR:
+      issued = 1;
+      NPC = id_ex.regB;
+      break;
+    case opcode::J:
+      issued = 1;
+      NPC = PC + signals.add(decoder);
+      break;
+    case opcode::SFEQ:
+      flag = (id_ex.regA == id_ex.regB);
+      break;
+    case opcode::SFLES:
+      flag = (id_ex.regA <= id_ex.regB);
+      break;
+    case opcode::SFNE:
+      flag = (id_ex.regA != id_ex.regB);
+      break;
+    case opcode::SFGES:
+      flag = (id_ex.regA >= id_ex.regB);
+      break;
   }
+  
+  // if (decoder.getOpcode() == opcode::JAL)
+  // {
+  //   issued = 1;
+  //   NPC = PC + signals.add(decoder);
+  //   linkReg = PC + 8;
+  // }
+  // if (decoder.getOpcode() == opcode::JR)
+  // {
+  //   issued = 1;
+  //   NPC = id_ex.regB;
+  // }
+  // if (signals.getopcode() == opcode::J)
+  // {
+  //   issued = 1;
+  //   NPC = PC + signals.add(decoder);
+  // }
 
-  if (signals.getopcode() == opcode::SFLES)
-  {
-    flag = (id_ex.regA <= id_ex.regB);
-  }
+  // if (signals.getopcode() == opcode::SFEQ)
+  // {
+  //   flag = (id_ex.regA == id_ex.regB);
+  // }
 
-  if (signals.getopcode() == opcode::SFNE)
-  {
-    flag = (id_ex.regA != id_ex.regB);
-  }
-  if (signals.getopcode() == opcode::SFGES)
-  {
-    flag = (id_ex.regA >= id_ex.regB);
-  }
+  // if (signals.getopcode() == opcode::SFLES)
+  // {
+  //   flag = (id_ex.regA <= id_ex.regB);
+  // }
+
+  // if (signals.getopcode() == opcode::SFNE)
+  // {
+  //   flag = (id_ex.regA != id_ex.regB);
+  // }
+  // if (signals.getopcode() == opcode::SFGES)
+  // {
+  //   flag = (id_ex.regA >= id_ex.regB);
+  // }
 
   // }
   id_ex.PC = PC;
