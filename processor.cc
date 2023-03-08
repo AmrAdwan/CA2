@@ -19,7 +19,7 @@ Processor::Processor(ELFFile &program, bool pipelining, bool debugMode)
     instructionMemory{ bus },
     dataMemory{ bus },
     pipeline{ pipelining, debugMode, PC, instructionMemory, decoder,
-        regfile, flag, NPC, issued, globalPC, dataMemory }
+        regfile, flag, NPC, issued, dataMemory }
 {
   bus.addClient(std::make_unique<Serial>(0x200));
 

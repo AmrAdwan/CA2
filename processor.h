@@ -49,7 +49,6 @@ class Processor
 
     MemAddress PC{};
     MemAddress NPC{};
-    MemAddress globalPC{};
     size_t issued{};
 
     Pipeline pipeline;

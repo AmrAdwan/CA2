@@ -30,7 +30,6 @@ struct IF_IDRegisters
 {
   MemAddress     PC{0};
   MemAddress     NPC{0};
-  // MemAddress     globalPC{0};
   instruction_t  instruction = 0;
 
 
@@ -41,7 +40,6 @@ struct ID_EXRegisters
 {
   MemAddress PC{0};
   MemAddress     NPC{0};
-  // MemAddress globalPC{0};
   RegValue   regA = 0;
   RegValue   regB = 0;
   RegValue   regD = 0;
@@ -68,7 +66,6 @@ struct EX_MRegisters
 {
   MemAddress PC{0};
   MemAddress NPC{0};
-  // MemAddress globalPC{0};
   RegValue   regA = 0;
   RegValue   regB = 0;
   RegValue   regD = 0;
@@ -95,7 +92,6 @@ struct M_WBRegisters
 {
   MemAddress PC{0};
   MemAddress NPC{0};
-  // MemAddress globalPC{0};
   RegValue   regD = 0;
   RegValue   memRead{};
   RegValue   ALUout = 0;
@@ -184,15 +180,13 @@ class InstructionFetchStage : public Stage
                           InstructionMemory instructionMemory,
                           MemAddress &PC, 
                           MemAddress &NPC,
-                          size_t &issued,
-                          MemAddress &globalPC)
+                          size_t &issued)
       : Stage(pipelining),
       if_id(if_id),
       instructionMemory(instructionMemory),
       PC(PC),
       NPC(NPC),
-      issued(issued),
-      globalPC(globalPC)
+      issued(issued)
     { }
 
     void propagate() override;
@@ -204,12 +198,9 @@ class InstructionFetchStage : public Stage
     InstructionMemory instructionMemory;
     MemAddress &PC;
     MemAddress &NPC;
-    MemAddress globalPC{0};
-    MemAddress linkReg{0};
-    instruction_t instruction;
-
-
     size_t &issued;
+    MemAddress linkReg{0};
+    instruction_t instruction{0};
 };
 
 /*
@@ -229,13 +220,12 @@ class InstructionDecodeStage : public Stage
                            bool &flag,
                            MemAddress &NPC,
                            size_t &issued,
-                           MemAddress &globalPC,
                            bool debugMode = false)
       : Stage(pipelining),
       if_id(if_id), id_ex(id_ex),
       regfile(regfile), decoder(decoder),
       nInstrIssued(nInstrIssued), nStalls(nStalls),
-      flag(flag), NPC(NPC), issued(issued), globalPC(globalPC), debugMode(debugMode)
+      flag(flag), NPC(NPC), issued(issued), debugMode(debugMode)
     { }
 
     void propagate() override;
@@ -251,15 +241,14 @@ class InstructionDecodeStage : public Stage
     uint64_t &nInstrIssued;
     uint64_t &nStalls;
     MemAddress linkReg{0};
-    size_t &issued;
     bool &flag;
+    MemAddress &NPC;
+    size_t &issued;
 
 
     bool debugMode = false;
 
     MemAddress PC{0};
-    MemAddress &NPC;
-    MemAddress globalPC{0};
     RegNumber RD{0};
 };
 
@@ -298,8 +287,6 @@ class ExecuteStage : public Stage
     
 
     MemAddress PC{0};
-    MemAddress globalPC{0};
-    MemAddress NPC{0};
     MemAddress linkReg{0};
     ControlSignals signals{};
     RegNumber RD{};
@@ -334,7 +321,6 @@ class MemoryStage : public Stage
     RegValue   regD = 0;
 
     MemAddress PC{0};
-    MemAddress globalPC{0};
     MemAddress NPC{0};
     MemAddress linkReg{0};
 
@@ -346,7 +332,7 @@ class MemoryStage : public Stage
     MemorySelector actionMem = MemorySelector::none;
     RegValue ALUout = 0;
     bool memReadExtend = false;
-    Mux<MemAddress, PCSelector> muxPC;
+    Mux<MemAddress, PCSelector> muxPC{};
     RegNumber RD{};
 };
 
@@ -376,7 +362,6 @@ class WriteBackStage : public Stage
     RegisterFile &regfile;
     bool &flag;
     MemAddress NPC{0};
-    MemAddress globalPC{0};
     MemAddress linkReg{0};
     ControlSignals signals{};
 
@@ -386,5 +371,6 @@ class WriteBackStage : public Stage
 
     uint64_t &nInstrCompleted;
 };
+
 
 #endif /* __STAGES_H__ */

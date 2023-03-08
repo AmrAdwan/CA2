@@ -5,6 +5,9 @@
  * Copyright (C) 2016,2019  Leiden University, The Netherlands.
  *
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+
 
 #include "inst-decoder.h"
 #include "arch.h"
@@ -194,7 +197,7 @@ opcode InstructionDecoder::getOpcode() const
     default:
       if (instructionWord == TestEndMarker) //|| instructionWord == NOPMarker ||
           // instructionWord == STALLMarker)// || instructionWord >> 24 == 21)
-          // return opcode::END;
+          return opcode::END;
       throw IllegalInstruction{"Illegal or unsupported opcode."};
   }
 }
@@ -270,9 +273,10 @@ InstructionDecoder::getOpcode2() const
       return opcode2::MOVHI;
     return opcode2::MACRC;
   }
-  // else {
-  //     throw IllegalInstruction{"Illegal or unsupported opcode."};
-  // }
+//   else {
+    //   throw IllegalInstruction{"Illegal or unsupported opcode."};
+//   }
+  return static_cast<opcode2>(0);
 }
 
 // to get the opcode 3 of some of the instructions that could not be identified 
@@ -367,6 +371,8 @@ InstructionDecoder::getOpcode3() const
         return opcode3::EXTBZ;
     }
   }
+  return static_cast<opcode3>(0);
+//   throw IllegalInstruction{"Illegal or unsupported opcode."};
 }
 
 
@@ -463,6 +469,8 @@ InstructionDecoder::getInstructionType() const
     case opcode3::XOR:
       return InstructionType::typeR;
   }
+//   throw IllegalInstruction{"Illegal or unsupported opcode."};
+  return static_cast<InstructionType>(0);
 }
 
 RegNumber
@@ -571,3 +579,5 @@ InstructionDecoder::getImmediate() const
   
   return imm;
 }
+
+#pragma GCC diagnostic pop

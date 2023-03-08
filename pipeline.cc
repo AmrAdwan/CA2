@@ -18,7 +18,6 @@ Pipeline::Pipeline(bool pipelining,
                    bool &flag,
                    MemAddress &NPC,
                    size_t &issued,
-                   MemAddress &globalPC,
                    DataMemory &dataMemory)
   : pipelining{ pipelining }
 {
@@ -28,7 +27,7 @@ Pipeline::Pipeline(bool pipelining,
   stages.emplace_back(std::make_unique<InstructionFetchStage>(pipelining,
                                                               if_id,
                                                               instructionMemory,
-                                                              PC, NPC, issued, globalPC));
+                                                              PC, NPC, issued));
   stages.emplace_back(std::make_unique<InstructionDecodeStage>(pipelining,
                                                                if_id, id_ex,
                                                                regfile,
@@ -38,7 +37,6 @@ Pipeline::Pipeline(bool pipelining,
                                                                flag,
                                                                NPC,
                                                                issued,
-                                                               globalPC,
                                                                debugMode));
   stages.emplace_back(std::make_unique<ExecuteStage>(pipelining,
                                                      id_ex, ex_m));

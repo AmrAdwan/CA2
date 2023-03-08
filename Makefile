@@ -3,10 +3,10 @@
 #
 # Copyright (C) 2016,2019  Leiden University, The Netherlands.
 #
-CXX = c++
+CXX = g++
 
 CXXFLAGS = -std=c++17 -Wall -Weffc++ -g -Og
-# LDFLAGS = -lstdc++fs
+LDFLAGS = -lstdc++fs
 
 OBJECTS = \
 	alu.o \

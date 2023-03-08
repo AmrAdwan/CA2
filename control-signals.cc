@@ -5,6 +5,9 @@
 #include "mux.h"
 #include <iostream>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+
 
 RegValue ControlSignals::add(InstructionDecoder & decoder)
 {
@@ -115,8 +118,8 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
     case opcode::SW:
     case opcode::SB:
     case opcode::ORI:
-    case opcode::SFLES:
-    case opcode::SFNE:
+    // case opcode::SFLES:
+    // case opcode::SFNE:
       return InputSelectorA::rs1;
     case opcode::ADD:
       switch (op2) 
@@ -147,6 +150,9 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
       {
         return InputSelectorA::rd;
       }
+    // default:
+      // throw IllegalInstruction{"Unknown opcode enum value."};
+      // return InputSelectorA::LAST;
   }
 }
 
@@ -185,8 +191,8 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
         return InputSelectorB::immediate;
       }
     case opcode::JR:
-    case opcode::SFLES:
-    case opcode::SFNE:
+    // case opcode::SFLES:
+    // case opcode::SFNE:
       return InputSelectorB::rs2;
     case opcode::ADDI:
     case opcode::LBS:
@@ -201,9 +207,9 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
     case opcode::ORI:
       return InputSelectorB::immediate;
 
-    // default:
+    default:
       // throw IllegalInstruction{"Unknown opcode enum value."};
-      // return InputSelectorB::LAST;
+      return InputSelectorB::LAST;
   }
 }
 
@@ -298,3 +304,5 @@ void ControlSignals::setInstruction(const InstructionDecoder & decoder)
   type = decoder.getInstructionType();
   immediate = decoder.getImmediate();
 }
+
+#pragma GCC diagnostic pop

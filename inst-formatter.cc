@@ -5,6 +5,9 @@
  * Copyright (C) 2016,2018  Leiden University, The Netherlands.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+
 
 #include "arch.h"
 #include "inst-decoder.h"
@@ -921,3 +924,5 @@ void printEMU( std::ostream & os, const InstructionDecoder & decoder )
     else
         throw IllegalInstruction{"Invalid or unsupported opcode."};
 }
+
+#pragma GCC diagnostic pop

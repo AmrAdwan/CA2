@@ -26,7 +26,6 @@ class Pipeline
              bool &flag,
              MemAddress &NPC,
              size_t &issued,
-             MemAddress &globalPC,
              DataMemory &dataMemory);
 
     Pipeline(const Pipeline &) = delete;

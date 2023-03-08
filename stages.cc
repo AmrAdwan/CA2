@@ -5,6 +5,9 @@
  * Copyright (C) 2016-2020  Leiden University, The Netherlands.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+
 #include "stages.h"
 #include "alu.h"
 #include "arch.h"
@@ -70,8 +73,6 @@ InstructionFetchStage::clockPulse()
 {
   /* TODO: write necessary fields in pipeline register */
   if_id.PC = PC;
-  // if_id.NPC = NPC;
-  // if_id.globalPC = globalPC;
   if_id.instruction = instruction;
   PC += 4;
 }
@@ -93,14 +94,13 @@ InstructionDecodeStage::propagate()
    * signals from a given opcode and function code.
    */
   PC = if_id.PC;
-  // NPC = if_id.NPC;
-  // globalPC = if_id.globalPC;
   decoder.setInstructionWord(if_id.instruction);
   signals.setInstruction(decoder);
-  // if (decoder.getOpcode() != opcode::NOP ||
-  //     decoder.getInstructionType() == InstructionType::typeR ||
-  //     decoder.getInstructionType() == InstructionType::typeS)
-  // {
+  if (decoder.getOpcode() != opcode::NOP ||
+      
+      decoder.getInstructionType() == InstructionType::typeR ||
+      decoder.getInstructionType() == InstructionType::typeS)
+  {
     regfile.setRS1(decoder.getA()); // set the value of Register A
     regfile.setRS2(decoder.getB()); // set the value of Register B
     RD = decoder.getD();
@@ -109,7 +109,7 @@ InstructionDecodeStage::propagate()
     regfile.setRD(RD); // set the value of Register D
     regfile.setWriteData(RegValue{0});
     regfile.setWriteEnable(shouldWrite == WriteBackOutputSelector::write);
-  // }
+  }
 
   /* debug mode: dump decoded instructions to cerr.
    * In case of no pipelining: always dump.
@@ -155,59 +155,18 @@ void InstructionDecodeStage::clockPulse()
 
   /* TODO: write necessary fields in pipeline register */
   id_ex.PC = PC;
-  // id_ex.NPC = NPC;
-  // id_ex.globalPC = globalPC;
   id_ex.signals = signals;
-  // if (decoder.getOpcode() != opcode::NOP || 
-  //   decoder.getInstructionType() == InstructionType::typeR ||
-  //   decoder.getInstructionType() == InstructionType::typeS)
-  // {
+  if (decoder.getOpcode() != opcode::NOP || 
+    decoder.getInstructionType() == InstructionType::typeR ||
+    decoder.getInstructionType() == InstructionType::typeS)
+  {
     id_ex.regA = regfile.getReadData1();
     id_ex.regB = regfile.getReadData2();
     id_ex.regD = decoder.getD();
     id_ex.immediate = decoder.getImmediate();
-  // }
+  }
 
-  // if (decoder.getOpcode() == opcode::SB)
-  // {
-  //   id_ex.regB &= 0xff; // to get the lower 8-bits from Register B
-  // }
-  // else if (decoder.getOpcode() == opcode::SW)
-  // {
-  //   id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
-  // }
-
-  // if (decoder.getOpcode() == opcode::MACRC)
-  // {
-  //   if (decoder.getOpcode2() == opcode2::MOVHI)
-  //   {
-  //     id_ex.immediate <<= 16;
-  //   }
-  // }
-  // if (decoder.getOpcode() == opcode::BF)
-  // {
-  //   if (flag)
-  //   {
-  //     issued = 1;
-  //     NPC = PC + signals.add(decoder);
-  //   }
-  // }
-
-  // if (signals.getopcode() == opcode::BNF)
-  // {
-  //   if (!flag)
-  //   {
-  //     issued = 1;
-  //     NPC = PC + signals.add(decoder);
-  //   }
-  // }
-
-  // id_ex.regD = decoder.getD();
-  // id_ex.immediate = decoder.getImmediate();
-  // if (decoder.getInstructionType() == InstructionType::typeJ)
-  // {
-    // issued = 1;
-    // NPC = PC + signals.add(decoder);
+ 
 
   switch (decoder.getOpcode()) 
   {
@@ -263,51 +222,13 @@ void InstructionDecodeStage::clockPulse()
       flag = (id_ex.regA >= id_ex.regB);
       break;
   }
-  
-  // if (decoder.getOpcode() == opcode::JAL)
-  // {
-  //   issued = 1;
-  //   NPC = PC + signals.add(decoder);
-  //   linkReg = PC + 8;
-  // }
-  // if (decoder.getOpcode() == opcode::JR)
-  // {
-  //   issued = 1;
-  //   NPC = id_ex.regB;
-  // }
-  // if (signals.getopcode() == opcode::J)
-  // {
-  //   issued = 1;
-  //   NPC = PC + signals.add(decoder);
-  // }
 
-  // if (signals.getopcode() == opcode::SFEQ)
-  // {
-  //   flag = (id_ex.regA == id_ex.regB);
-  // }
-
-  // if (signals.getopcode() == opcode::SFLES)
-  // {
-  //   flag = (id_ex.regA <= id_ex.regB);
-  // }
-
-  // if (signals.getopcode() == opcode::SFNE)
-  // {
-  //   flag = (id_ex.regA != id_ex.regB);
-  // }
-  // if (signals.getopcode() == opcode::SFGES)
-  // {
-  //   flag = (id_ex.regA >= id_ex.regB);
-  // }
-
-  // }
   id_ex.PC = PC;
-  // id_ex.NPC = NPC;
   id_ex.linkReg = linkReg;
   id_ex.RD = RD;
   id_ex.signals = signals;
   id_ex.actionALUA = signals.getSelectorALUInputA(); // get the first input of the ALU
-  id_ex.actionALUB = signals.getSelectorALUInputB(); // // get the second input of the ALU
+  id_ex.actionALUB = signals.getSelectorALUInputB(); // get the second input of the ALU
   id_ex.actionMem = signals.getSelectorMemory(); // get if the instruction is a memory instruction
   id_ex.actionWBOut = signals.getSelectorWBOutput();
   id_ex.action_ALU = signals.getALUOp(); // get the ALU operation
@@ -328,9 +249,7 @@ ExecuteStage::propagate()
    * Consider using the Mux class.
    */ 
   PC = id_ex.PC;
-  // globalPC = id_ex.globalPC;
   RD = id_ex.RD;
-  // NPC = id_ex.NPC;
   linkReg = id_ex.linkReg;
   signals = id_ex.signals;
   regA = id_ex.regA;
@@ -343,11 +262,12 @@ ExecuteStage::propagate()
   readSize = id_ex.readSize;
   immediate = id_ex.immediate;
 
-  // if (signals.getType() != InstructionType::typeJ)
-  if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
-      signals.getopcode() != opcode::J || signals.getopcode() != opcode::JAL ||
-      signals.getopcode() != opcode::JALR || signals.getopcode() != opcode::BNF ||
-      signals.getopcode() != opcode::NOP)
+  if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
+      signals.getopcode() != opcode::J && signals.getopcode() != opcode::JAL &&
+      signals.getopcode() != opcode::JALR && signals.getopcode() != opcode::BNF &&
+      signals.getopcode() != opcode::NOP && signals.getopcode() != opcode::SFNE && 
+      signals.getopcode() != opcode::SFEQ && signals.getopcode() != opcode::SFLES && 
+      signals.getopcode() != opcode::SFGES)
   {
     { // Set input A.
         Mux<RegValue, InputSelectorA> mux;
@@ -384,9 +304,11 @@ ExecuteStage::clockPulse()
    * the ALU computes the effective memory address.
    */
   
-  if (signals.getopcode() != opcode::BF || signals.getopcode() != opcode::JR ||
-      signals.getopcode() != opcode::J ||  signals.getopcode() != opcode::JALR || 
-      signals.getopcode() != opcode::BNF || signals.getopcode() != opcode::NOP)
+  if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
+      signals.getopcode() != opcode::J &&  signals.getopcode() != opcode::JALR && 
+      signals.getopcode() != opcode::BNF && signals.getopcode() != opcode::NOP &&
+      signals.getopcode() != opcode::SFNE && signals.getopcode() != opcode::SFEQ &&
+      signals.getopcode() != opcode::SFLES && signals.getopcode() != opcode::SFGES)
   {
     ex_m.ALUout = alu.getResult();
   }
@@ -399,9 +321,7 @@ ExecuteStage::clockPulse()
   }
   // } 
   ex_m.PC = PC;
-  // ex_m.NPC = NPC;
   ex_m.RD = RD;
-  // ex_m.globalPC = globalPC;
   ex_m.actionMem = actionMem;
   ex_m.actionWBIn = actionWBIn;
   ex_m.actionWBOut = actionWBOut;
@@ -426,9 +346,7 @@ MemoryStage::propagate()
    * inputs from pipeline register.
    */
   PC = ex_m.PC;
-  // globalPC = ex_m.globalPC;
   RD = ex_m.RD;
-  // NPC = ex_m.NPC;
   actionWBIn = ex_m.actionWBIn;
   actionWBOut = ex_m.actionWBOut;
   linkReg = ex_m.linkReg;
@@ -485,8 +403,6 @@ MemoryStage::clockPulse()
     dataMemory.setWriteEnable(false);
   }
   m_wb.PC = PC;
-  // m_wb.NPC = NPC;
-  // globalPC = m_wb.globalPC;
   m_wb.RD = RD;
   m_wb.actionWBIn = actionWBIn;
   m_wb.actionWBOut = actionWBOut;
@@ -505,7 +421,6 @@ WriteBackStage::propagate()
 {
   if (! pipelining || (pipelining && m_wb.PC != 0x0))
     ++nInstrCompleted;
-  // NPC = m_wb.NPC;
   signals = m_wb.signals;
   linkReg = m_wb.linkReg;
 
@@ -526,7 +441,12 @@ WriteBackStage::propagate()
   // }
   
   // Figuring out what to write, if any.
-  if (signals.getopcode() != opcode::BF)
+  // if (signals.getopcode() != opcode::BF)
+  if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
+      signals.getopcode() != opcode::J &&  signals.getopcode() != opcode::JALR && 
+      signals.getopcode() != opcode::BNF && signals.getopcode() != opcode::NOP &&
+      signals.getopcode() != opcode::SFNE && signals.getopcode() != opcode::SFEQ &&
+      signals.getopcode() != opcode::SFLES && signals.getopcode() != opcode::SFGES)
   {
     Mux<RegValue, WriteBackInputSelector> mux;
     mux.setInput(WriteBackInputSelector::memory, m_wb.memRead);
@@ -552,3 +472,4 @@ WriteBackStage::clockPulse()
     regfile.setWriteEnable(false);
   }
 }
+#pragma GCC diagnostic pop
