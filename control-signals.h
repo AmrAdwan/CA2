@@ -13,6 +13,7 @@ class ControlSignals
     uint32_t getInstruction();
     InstructionType getType();
     opcode getopcode();
+    opcode2 getopcode2();
     uint32_t getimmediate();
     ALUOp getALUOp() const;
     InputSelectorA getSelectorALUInputA() const;

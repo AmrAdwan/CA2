@@ -61,7 +61,7 @@ ALU::getResult()
       B &= 0b1111;
       return A << B;
     case ALUOp::MOVHI:
-      return B;
+      return B << 16;
     case ALUOp::NOP:
       return RegValue{0};
 

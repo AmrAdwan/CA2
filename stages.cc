@@ -96,10 +96,9 @@ InstructionDecodeStage::propagate()
   PC = if_id.PC;
   decoder.setInstructionWord(if_id.instruction);
   signals.setInstruction(decoder);
-  if (decoder.getOpcode() != opcode::NOP ||
-      
-      decoder.getInstructionType() == InstructionType::typeR ||
-      decoder.getInstructionType() == InstructionType::typeS)
+  if (decoder.getOpcode() != opcode::NOP)
+      // decoder.getInstructionType() == InstructionType::typeR ||
+      // decoder.getInstructionType() == InstructionType::typeS)
   {
     regfile.setRS1(decoder.getA()); // set the value of Register A
     regfile.setRS2(decoder.getB()); // set the value of Register B
@@ -156,17 +155,10 @@ void InstructionDecodeStage::clockPulse()
   /* TODO: write necessary fields in pipeline register */
   id_ex.PC = PC;
   id_ex.signals = signals;
-  if (decoder.getOpcode() != opcode::NOP || 
-    decoder.getInstructionType() == InstructionType::typeR ||
-    decoder.getInstructionType() == InstructionType::typeS)
-  {
-    id_ex.regA = regfile.getReadData1();
-    id_ex.regB = regfile.getReadData2();
-    id_ex.regD = decoder.getD();
-    id_ex.immediate = decoder.getImmediate();
-  }
-
- 
+  id_ex.regA = regfile.getReadData1();
+  id_ex.regB = regfile.getReadData2();
+  id_ex.regD = decoder.getD();
+  id_ex.immediate = decoder.getImmediate();
 
   switch (decoder.getOpcode()) 
   {
@@ -199,7 +191,10 @@ void InstructionDecodeStage::clockPulse()
     case opcode::MACRC:
       if (decoder.getOpcode2() == opcode2::MOVHI)
       {
-        id_ex.immediate <<= 16;
+        if (((id_ex.immediate >> 15) & 0b1) == 0b1)
+        {
+          id_ex.immediate |= 0xffff0000;
+        }
       }
       break;
     case opcode::JAL:
@@ -226,7 +221,7 @@ void InstructionDecodeStage::clockPulse()
       break;
     case opcode::SFGES:
       flag = (id_ex.regA >= id_ex.regB);
-      break;
+      break;        
   }
 
   id_ex.PC = PC;
@@ -250,10 +245,6 @@ void InstructionDecodeStage::clockPulse()
 void
 ExecuteStage::propagate()
 {
-  /* TODO configure ALU based on control signals and using inputs
-   * from pipeline register.
-   * Consider using the Mux class.
-   */ 
   PC = id_ex.PC;
   linkReg = id_ex.linkReg;
   signals = id_ex.signals;
@@ -291,6 +282,7 @@ ExecuteStage::propagate()
     }
   }
   alu.setOp(id_ex.action_ALU);
+  std::cout << "regD = " << int(regD) << "   ";  
 }
 
 void
@@ -310,13 +302,25 @@ ExecuteStage::clockPulse()
     ex_m.ALUout = alu.getResult();
   }
 
-  // if (signals.getType() == InstructionType::typeJ)
-  // {
   if (signals.getopcode() == opcode::JAL)
   {
     ex_m.ALUout = linkReg;
+  } 
+
+
+  if (signals.getopcode() == opcode::ADD)
+  {
+    if (signals.getopcode2() == opcode2::SLL)
+      ex_m.regD = ex_m.ALUout;
+    if (signals.getopcode2() == opcode2::EXTHZ)
+      ex_m.regD = ex_m.ALUout;
   }
-  // } 
+  if (signals.getopcode() == opcode::MACRC)
+  {
+    if (signals.getopcode2() == opcode2::MOVHI)
+      ex_m.regD = ex_m.ALUout;
+  }
+
   ex_m.PC = PC;
   ex_m.actionMem = actionMem;
   ex_m.actionWBIn = actionWBIn;
@@ -338,9 +342,6 @@ ExecuteStage::clockPulse()
 void
 MemoryStage::propagate()
 {
-  /* TODO: configure data memory based on control signals and using
-   * inputs from pipeline register.
-   */
   PC = ex_m.PC;
   actionWBIn = ex_m.actionWBIn;
   actionWBOut = ex_m.actionWBOut;
@@ -359,7 +360,11 @@ MemoryStage::propagate()
   }
   if (signals.getType() == InstructionType::typeS)
   {
+    dataMemory.setWriteEnable(true);
     dataMemory.setAddress(ALUout);
+    // std::cout << "readsize = " << int(ex_m.readSize) << '\n';
+    dataMemory.setSize(ex_m.readSize);
+    dataMemory.setDataIn(regB);
   }
 
   if (signals.getopcode() == opcode::LWZ || signals.getopcode() == opcode::LBS
@@ -373,10 +378,6 @@ MemoryStage::propagate()
 void
 MemoryStage::clockPulse()
 {
-  /* TODO: pulse the data memory */
-
-  /* TODO: write necessary fields in pipeline register */
-
   if (actionMem == MemorySelector::load) 
   {
     dataMemory.setReadEnable(true); // to let the load instruction to read
@@ -395,8 +396,8 @@ MemoryStage::clockPulse()
   } 
   else if (actionMem == MemorySelector::store) 
   {
-    dataMemory.setDataIn(regB);
-    dataMemory.setWriteEnable(true); // to let the store instruction to write
+    // dataMemory.setDataIn(regB);
+    // dataMemory.setWriteEnable(true); // to let the store instruction to write
     dataMemory.clockPulse();
     dataMemory.setWriteEnable(false);
   }

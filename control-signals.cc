@@ -35,6 +35,11 @@ opcode ControlSignals::getopcode ()
   return op;
 }
 
+opcode2 ControlSignals::getopcode2 ()
+{
+  return op2;
+}
+
 
 uint32_t ControlSignals::getimmediate()
 {
@@ -269,6 +274,7 @@ WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
     case opcode::ORI:
     case opcode::MACRC:
     case opcode::JAL:
+    case opcode::RORI:
       return WriteBackOutputSelector::write;
 
   }
