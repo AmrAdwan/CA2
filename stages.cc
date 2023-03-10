@@ -103,10 +103,10 @@ InstructionDecodeStage::propagate()
   {
     regfile.setRS1(decoder.getA()); // set the value of Register A
     regfile.setRS2(decoder.getB()); // set the value of Register B
-    RD = decoder.getD();
+    regD = decoder.getD();
 
     WriteBackOutputSelector shouldWrite = WriteBackOutputSelector::none;
-    regfile.setRD(RD); // set the value of Register D
+    regfile.setRD(regD); // set the value of Register D
     regfile.setWriteData(RegValue{0});
     regfile.setWriteEnable(shouldWrite == WriteBackOutputSelector::write);
   }
@@ -133,8 +133,8 @@ InstructionDecodeStage::propagate()
 
   if (decoder.getOpcode() == opcode::JAL) 
   {
-    RD = 9;
-    regfile.setRD(RD);
+    regD = 9;
+    regfile.setRD(regD);
 
   }
   if (decoder.getOpcode() == opcode::JR ) 
@@ -175,6 +175,12 @@ void InstructionDecodeStage::clockPulse()
       break;
     case opcode::SW:
       id_ex.regB &= 0xffffffff; // to get the 32-bits from register B
+      break;
+    case opcode::LWZ:
+      id_ex.regD &= 0xffffffff; // to get the 32-bits from register D
+      break;
+    case opcode::LBS:
+      id_ex.regD &= 0xff; // to get the lower 8-bits from Register D
       break;
     case opcode::BF:
       if (flag)
@@ -225,7 +231,7 @@ void InstructionDecodeStage::clockPulse()
 
   id_ex.PC = PC;
   id_ex.linkReg = linkReg;
-  id_ex.RD = RD;
+  id_ex.regD = regD;
   id_ex.signals = signals;
   id_ex.actionALUA = signals.getSelectorALUInputA(); // get the first input of the ALU
   id_ex.actionALUB = signals.getSelectorALUInputB(); // get the second input of the ALU
@@ -249,7 +255,6 @@ ExecuteStage::propagate()
    * Consider using the Mux class.
    */ 
   PC = id_ex.PC;
-  RD = id_ex.RD;
   linkReg = id_ex.linkReg;
   signals = id_ex.signals;
   regA = id_ex.regA;
@@ -273,10 +278,6 @@ ExecuteStage::propagate()
         Mux<RegValue, InputSelectorA> mux;
         mux.setInput(InputSelectorA::rs1, regA);
         mux.setInput(InputSelectorA::rd, regD);
-        /* Once forwarding is implemented:
-          * TODO: Add setInput() calls for forwarded values.
-          * TODO: Somehow choose the selector based on id_ex.actionALUA and the
-          *       forwarded values. */
         mux.setSelector(id_ex.actionALUA);
         alu.setA(mux.getOutput());
     }
@@ -285,10 +286,6 @@ ExecuteStage::propagate()
         Mux<RegValue, InputSelectorB> mux;
         mux.setInput(InputSelectorB::rs2, id_ex.regB);
         mux.setInput(InputSelectorB::immediate, id_ex.immediate);
-        /* Once forwarding is implemented:
-          * TODO: Add setInput() calls for forwarded values.
-          * TODO: Somehow choose the selector based on id_ex.actionALUA and the
-          *       forwarded values. */
         mux.setSelector(id_ex.actionALUB);
         alu.setB(mux.getOutput());
     }
@@ -321,7 +318,6 @@ ExecuteStage::clockPulse()
   }
   // } 
   ex_m.PC = PC;
-  ex_m.RD = RD;
   ex_m.actionMem = actionMem;
   ex_m.actionWBIn = actionWBIn;
   ex_m.actionWBOut = actionWBOut;
@@ -346,7 +342,6 @@ MemoryStage::propagate()
    * inputs from pipeline register.
    */
   PC = ex_m.PC;
-  RD = ex_m.RD;
   actionWBIn = ex_m.actionWBIn;
   actionWBOut = ex_m.actionWBOut;
   linkReg = ex_m.linkReg;
@@ -356,29 +351,23 @@ MemoryStage::propagate()
   regD = ex_m.regD;
   actionMem = ex_m.actionMem;
   memReadExtend = ex_m.memReadExtend; 
+  dataMemory.setSize(ex_m.readSize);
+
   if (signals.getopcode() == opcode::JAL)
   {
-    dataMemory.setAddress(RD);
+    dataMemory.setAddress(regD);
   }
-  else if (signals.getType() == InstructionType::typeS)
+  if (signals.getType() == InstructionType::typeS)
   {
     dataMemory.setAddress(ALUout);
   }
 
-  // else if (signals.getType() == InstructionType::typeI)
-  // {
-    if (signals.getopcode() == opcode::LWZ)
-    {
-      dataMemory.setAddress(ALUout);
-      dataMemory.setSize(ex_m.readSize);
-    }
-  // }
-  
-  dataMemory.setSize(ex_m.readSize);
-  muxPC.setSelector(ex_m.actionPC);
-  if (actionMem == MemorySelector::LAST)
-    throw std::invalid_argument{"Unexpected MemorySelector::LAST "
-                                "encountered."};
+  if (signals.getopcode() == opcode::LWZ || signals.getopcode() == opcode::LBS
+      || signals.getopcode() == opcode::LBZ)
+  {
+    dataMemory.setAddress(ALUout);
+    dataMemory.setSize(ex_m.readSize);
+  }
 }
 
 void
@@ -393,6 +382,15 @@ MemoryStage::clockPulse()
     dataMemory.setReadEnable(true); // to let the load instruction to read
     dataMemory.setDataIn(regD);
     m_wb.memRead = dataMemory.getDataOut(memReadExtend);
+
+    // High-order bits of the loaded value are replaced
+    // with bit 7 of the loaded value ( if it is 1 )
+    if(signals.getopcode() == opcode::LBS &&
+       static_cast<int>((m_wb.memRead >> 7) & 0b1) == 1)
+      {
+        m_wb.memRead = m_wb.memRead | 0xffffff00;
+      }// if
+
     dataMemory.setReadEnable(false);
   } 
   else if (actionMem == MemorySelector::store) 
@@ -403,7 +401,6 @@ MemoryStage::clockPulse()
     dataMemory.setWriteEnable(false);
   }
   m_wb.PC = PC;
-  m_wb.RD = RD;
   m_wb.actionWBIn = actionWBIn;
   m_wb.actionWBOut = actionWBOut;
   m_wb.regD = regD;
@@ -430,18 +427,13 @@ WriteBackStage::propagate()
   actionWBOut = m_wb.actionWBOut;
   regfile.setRD(m_wb.regD);
 
-  // if (signals.getType() == InstructionType::typeI)
-  // {
-    if (signals.getopcode() == opcode::LWZ ||
-        signals.getopcode() == opcode::LBS ||
-        signals.getopcode() == opcode::LBZ)
-    {
-      regfile.setWriteData(m_wb.memRead);
-    }
-  // }
-  
-  // Figuring out what to write, if any.
-  // if (signals.getopcode() != opcode::BF)
+  if (signals.getopcode() == opcode::LWZ ||
+      signals.getopcode() == opcode::LBS ||
+      signals.getopcode() == opcode::LBZ)
+  {
+    regfile.setWriteData(m_wb.memRead);
+  }
+
   if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
       signals.getopcode() != opcode::J &&  signals.getopcode() != opcode::JALR && 
       signals.getopcode() != opcode::BNF && signals.getopcode() != opcode::NOP &&
@@ -456,7 +448,7 @@ WriteBackStage::propagate()
   }
   if (signals.getopcode() == opcode::JAL)
   {
-    regfile.setRD(m_wb.RD);
+    regfile.setRD(m_wb.regD);
     regfile.setWriteData(linkReg);
   }
 }
@@ -465,7 +457,7 @@ void
 WriteBackStage::clockPulse()
 {
   /* TODO: pulse the register file */
-  if (actionWBOut == WriteBackOutputSelector::write || signals.getopcode() == opcode::JAL) 
+  if (actionWBOut == WriteBackOutputSelector::write) 
   { 
     regfile.setWriteEnable(true);
     regfile.clockPulse();

@@ -6,7 +6,7 @@
 CXX = g++
 
 CXXFLAGS = -std=c++17 -Wall -Weffc++ -g -Og
-LDFLAGS = -lstdc++fs
+# LDFLAGS = -lstdc++fs
 
 OBJECTS = \
 	alu.o \

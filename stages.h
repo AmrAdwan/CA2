@@ -46,7 +46,6 @@ struct ID_EXRegisters
   int32_t    immediate = 0;
   MemAddress linkReg{0};
   ControlSignals signals{};
-  RegNumber RD = 0;
 
   uint8_t    readSize = 8;
   WriteBackInputSelector   actionWBIn;
@@ -72,7 +71,6 @@ struct EX_MRegisters
   int32_t    immediate = 0;
   MemAddress linkReg{0};
   ControlSignals signals{};
-  RegNumber RD = 0;
   
   
   MemAddress                branchPC = 0;
@@ -97,7 +95,6 @@ struct M_WBRegisters
   RegValue   ALUout = 0;
   MemAddress linkReg{0};
   ControlSignals signals{};
-  RegNumber RD = 0;
 
   WriteBackInputSelector actionWBIn;
   WriteBackOutputSelector actionWBOut = WriteBackOutputSelector::none;
@@ -249,7 +246,7 @@ class InstructionDecodeStage : public Stage
     bool debugMode = false;
 
     MemAddress PC{0};
-    RegNumber RD{0};
+    RegNumber regD{0};
 };
 
 /*
@@ -289,7 +286,6 @@ class ExecuteStage : public Stage
     MemAddress PC{0};
     MemAddress linkReg{0};
     ControlSignals signals{};
-    RegNumber RD{};
     /* TODO: add other necessary fields/buffers and components (ALU anyone?) */
 };
 
@@ -321,7 +317,6 @@ class MemoryStage : public Stage
     RegValue   regD = 0;
 
     MemAddress PC{0};
-    MemAddress NPC{0};
     MemAddress linkReg{0};
 
     ControlSignals signals{};
@@ -333,7 +328,6 @@ class MemoryStage : public Stage
     RegValue ALUout = 0;
     bool memReadExtend = false;
     Mux<MemAddress, PCSelector> muxPC{};
-    RegNumber RD{};
 };
 
 /*
@@ -361,7 +355,6 @@ class WriteBackStage : public Stage
 
     RegisterFile &regfile;
     bool &flag;
-    MemAddress NPC{0};
     MemAddress linkReg{0};
     ControlSignals signals{};
 

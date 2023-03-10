@@ -62,12 +62,6 @@ ALUOp ControlSignals::getALUOp() const
 
     case opcode::SFNE:
       return ALUOp::NEQ;
-
-
-    // case opcode::JR:
-    case opcode::JAL:
-      return ALUOp::JUMP;
-
     
     case opcode::MACRC:
       if (op2 == opcode2::MOVHI) 
@@ -224,10 +218,15 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
     case opcode::LF:
     case opcode::LWS:
     case opcode::LWZ:
+    case opcode::LWA:
+    case opcode::LHS:
+    case opcode::LHZ:
       return MemorySelector::load;
     case opcode::SB:
     case opcode::SD:
     case opcode::SW:
+    case opcode::SH:
+    case opcode::SWA:
       return MemorySelector::store;
     default:
       return MemorySelector::none;
@@ -262,12 +261,14 @@ WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
     case opcode::LWS:
     case opcode::LWZ:
     case opcode::LWA:
+    case opcode::LBS:
     case opcode::ADD:
     case opcode::ADDI:
     case opcode::SW:
     case opcode::SB:
     case opcode::ORI:
     case opcode::MACRC:
+    case opcode::JAL:
       return WriteBackOutputSelector::write;
 
   }
@@ -278,13 +279,19 @@ WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
 uint8_t ControlSignals::getMemSize() const 
 { 
   switch (op) 
-  {
+  { 
+    case opcode::LD:
+    case opcode::SD:
+      return 8u;
+
     case opcode::LWS:
     case opcode::LWZ:
     case opcode::SW:
     case opcode::LWA:
       return 4u;
     case opcode::SB:
+    case opcode::LBS:
+    case opcode::LBZ:
       return 1u;
     default:
       return 1u;
@@ -293,7 +300,7 @@ uint8_t ControlSignals::getMemSize() const
 
 bool ControlSignals::getMemReadExtend() const 
 {
-  return op == opcode::LWS || op == opcode::LWZ;
+  return op == opcode::LWS || op == opcode::LWZ || op == opcode::LBS;
 }
 
 void ControlSignals::setInstruction(const InstructionDecoder & decoder)
