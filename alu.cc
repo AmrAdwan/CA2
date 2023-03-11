@@ -37,6 +37,7 @@ ALU::getResult()
     case ALUOp::AND:
       return A & B;
     case ALUOp::OR:
+      // std::cout << "OOOOOORRRRR = " << make(A | B) << '\n';
       return  A | B;
     case ALUOp::EQ:
       if (A == B)
@@ -55,13 +56,11 @@ ALU::getResult()
         return RegValue{1};
       return RegValue{0};
     case ALUOp::SRA:
-      B &= 0b1111;
+      // std::cout << "resultSRAAA = " << (A >> B) << '\n';
       return A >> B;
     case ALUOp::SLL:
-      B &= 0b1111;
+      // std::cout << "resultslllll = " << (A << B) << '\n';
       return A << B;
-    case ALUOp::MOVHI:
-      return B << 16;
     case ALUOp::NOP:
       return RegValue{0};
 

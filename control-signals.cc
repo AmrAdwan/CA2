@@ -67,12 +67,6 @@ ALUOp ControlSignals::getALUOp() const
 
     case opcode::SFNE:
       return ALUOp::NEQ;
-    
-    case opcode::MACRC:
-      if (op2 == opcode2::MOVHI) 
-      {
-        return ALUOp::MOVHI;
-      }
 
     case opcode::ORI:
       return ALUOp::OR;
@@ -117,6 +111,8 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
     case opcode::SW:
     case opcode::SB:
     case opcode::ORI:
+    case opcode::LBZ:
+    case opcode::LBS:
     // case opcode::SFLES:
     // case opcode::SFNE:
       return InputSelectorA::rs1;
@@ -143,11 +139,6 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
             case opcode3::SRA:
             return InputSelectorA::rs1;
           }
-      }
-    case opcode::MACRC:
-      if (op2 == opcode2::MOVHI) 
-      {
-        return InputSelectorA::rd;
       }
     // default:
       // throw IllegalInstruction{"Unknown opcode enum value."};
@@ -183,11 +174,6 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
             case opcode3::SRA:
               return InputSelectorB::rs2;
           }
-      }
-    case opcode::MACRC:
-      if (op2 == opcode2::MOVHI) 
-      {
-        return InputSelectorB::immediate;
       }
     case opcode::JR:
     // case opcode::SFLES:
@@ -267,6 +253,7 @@ WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
     case opcode::LWZ:
     case opcode::LWA:
     case opcode::LBS:
+    case opcode::LBZ:
     case opcode::ADD:
     case opcode::ADDI:
     case opcode::SW:

@@ -221,7 +221,27 @@ void InstructionDecodeStage::clockPulse()
       break;
     case opcode::SFGES:
       flag = (id_ex.regA >= id_ex.regB);
-      break;        
+      break;
+
+    // case opcode::ADD:
+    //   if (decoder.getOpcode2() == opcode2::SLL)
+    //   {
+    //     id_ex.regD = id_ex.regA << (id_ex.regB & 0b1111);
+    //   }
+    //   if (decoder.getOpcode2() == opcode2::EXTHZ)
+    //   {
+    //     id_ex.regB &= 0b1111;
+    //     id_ex.regA >>= id_ex.regB;
+    //     if (static_cast<int32_t>(id_ex.regA) & 0b10000)
+    //     { 
+    //       id_ex.regA |= 0xffffffe0;
+    //       id_ex.regD = id_ex.regA;
+    //     }
+    //     else 
+    //     {
+    //       id_ex.regD = id_ex.regA;        
+    //     }
+    //   }
   }
 
   id_ex.PC = PC;
@@ -263,7 +283,7 @@ ExecuteStage::propagate()
       signals.getopcode() != opcode::JALR && signals.getopcode() != opcode::BNF &&
       signals.getopcode() != opcode::NOP && signals.getopcode() != opcode::SFNE && 
       signals.getopcode() != opcode::SFEQ && signals.getopcode() != opcode::SFLES && 
-      signals.getopcode() != opcode::SFGES)
+      signals.getopcode() != opcode::SFGES && signals.getopcode() != opcode::MACRC)
   {
     { // Set input A.
         Mux<RegValue, InputSelectorA> mux;
@@ -279,10 +299,40 @@ ExecuteStage::propagate()
         mux.setInput(InputSelectorB::immediate, id_ex.immediate);
         mux.setSelector(id_ex.actionALUB);
         alu.setB(mux.getOutput());
+
+    }
+    alu.setOp(id_ex.action_ALU);
+  }
+
+  if (signals.getopcode() == opcode::MACRC)
+  {
+    if (signals.getopcode2() == opcode2::MOVHI)
+    {
+      alu.setA(immediate);
+      alu.setB(16);
+      alu.setOp(ALUOp::SLL);
     }
   }
-  alu.setOp(id_ex.action_ALU);
-  std::cout << "regD = " << int(regD) << "   ";  
+
+  if (signals.getopcode() == opcode::ADD)
+  {
+    if (signals.getopcode2() == opcode2::SLL)
+    {
+      regB &= 0b1111;
+      alu.setA(regA);
+      alu.setB(regB);
+      alu.setOp(ALUOp::SLL);
+    }
+
+    if (signals.getopcode2() == opcode2::EXTHZ)
+    {
+      regB &= 0b1111;
+      alu.setA(regA);
+      alu.setB(regB);
+      alu.setOp(ALUOp::SRA);
+    }
+  }
+  
 }
 
 void
@@ -310,15 +360,14 @@ ExecuteStage::clockPulse()
 
   if (signals.getopcode() == opcode::ADD)
   {
-    if (signals.getopcode2() == opcode2::SLL)
-      ex_m.regD = ex_m.ALUout;
     if (signals.getopcode2() == opcode2::EXTHZ)
-      ex_m.regD = ex_m.ALUout;
-  }
-  if (signals.getopcode() == opcode::MACRC)
-  {
-    if (signals.getopcode2() == opcode2::MOVHI)
-      ex_m.regD = ex_m.ALUout;
+    {
+      if (ex_m.ALUout & 0b10000)
+      {
+        ex_m.ALUout |= 0xffffffe0;
+        // std::cout << "aluouttt1111 = " << uint32_t(ex_m.ALUout) << '\n';
+      }
+    }
   }
 
   ex_m.PC = PC;
@@ -394,7 +443,7 @@ MemoryStage::clockPulse()
 
     dataMemory.setReadEnable(false);
   } 
-  else if (actionMem == MemorySelector::store) 
+  if (actionMem == MemorySelector::store) 
   {
     // dataMemory.setDataIn(regB);
     // dataMemory.setWriteEnable(true); // to let the store instruction to write
@@ -435,11 +484,7 @@ WriteBackStage::propagate()
     regfile.setWriteData(m_wb.memRead);
   }
 
-  if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
-      signals.getopcode() != opcode::J &&  signals.getopcode() != opcode::JALR && 
-      signals.getopcode() != opcode::BNF && signals.getopcode() != opcode::NOP &&
-      signals.getopcode() != opcode::SFNE && signals.getopcode() != opcode::SFEQ &&
-      signals.getopcode() != opcode::SFLES && signals.getopcode() != opcode::SFGES)
+  if (signals.getopcode() != opcode::NOP && signals.getType() != InstructionType::typeS)
   {
     Mux<RegValue, WriteBackInputSelector> mux;
     mux.setInput(WriteBackInputSelector::memory, m_wb.memRead);
