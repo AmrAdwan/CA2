@@ -174,6 +174,9 @@ void InstructionDecodeStage::clockPulse()
     case opcode::LBS:
       id_ex.regD &= 0xff; // to get the lower 8-bits from Register D
       break;
+    case opcode::LBZ:
+      id_ex.regD &= 0xff; // to get the lower 8-bits from Register D
+      break;
     case opcode::BF:
       if (flag)
       {
@@ -358,17 +361,17 @@ ExecuteStage::clockPulse()
   } 
 
 
-  if (signals.getopcode() == opcode::ADD)
-  {
-    if (signals.getopcode2() == opcode2::EXTHZ)
-    {
-      if (ex_m.ALUout & 0b10000)
-      {
-        ex_m.ALUout |= 0xffffffe0;
-        // std::cout << "aluouttt1111 = " << uint32_t(ex_m.ALUout) << '\n';
-      }
-    }
-  }
+  // if (signals.getopcode() == opcode::ADD)
+  // {
+  //   if (signals.getopcode2() == opcode2::EXTHZ)
+  //   {
+  //     if (ex_m.ALUout & 0b10000)
+  //     {
+  //       ex_m.ALUout |= 0xffffffe0;
+  //       // std::cout << "aluouttt1111 = " << uint32_t(ex_m.ALUout) << '\n';
+  //     }
+  //   }
+  // }
 
   ex_m.PC = PC;
   ex_m.actionMem = actionMem;
@@ -437,9 +440,9 @@ MemoryStage::clockPulse()
     // with bit 7 of the loaded value ( if it is 1 )
     if(signals.getopcode() == opcode::LBS &&
        static_cast<int>((m_wb.memRead >> 7) & 0b1) == 1)
-      {
-        m_wb.memRead = m_wb.memRead | 0xffffff00;
-      }// if
+    {
+      m_wb.memRead = m_wb.memRead | 0xffffff00;
+    }
 
     dataMemory.setReadEnable(false);
   } 
