@@ -192,11 +192,11 @@ opcode InstructionDecoder::getOpcode() const
       return opcode::SWA;
     case 43: // 0x2b
       return opcode::XORI;
-    // case 21: // 0x15
-    //   return opcode::NOP;
+    case 21: // 0x15
+      return opcode::NOP;
     default:
-      if (instructionWord == TestEndMarker) //|| instructionWord == NOPMarker ||
-          // instructionWord == STALLMarker)// || instructionWord >> 24 == 21)
+      if (instructionWord == TestEndMarker || instructionWord == NOPMarker ||
+          instructionWord == STALLMarker || instructionWord >> 24 == 21)
           return opcode::END;
       throw IllegalInstruction{"Illegal or unsupported opcode."};
   }
@@ -213,8 +213,6 @@ InstructionDecoder::getOpcode2() const
   {
     // startBit = 6;
     // lastBit = 7; 
-    // maskSign2 = ((1 << (7 - 6 + 1)) - 1) << 6;
-    // switch (bitMask(6, 7)) 
     switch (selectBits32_8(instructionWord, 6, 7, 0))
     {
     
@@ -273,9 +271,6 @@ InstructionDecoder::getOpcode2() const
       return opcode2::MOVHI;
     return opcode2::MACRC;
   }
-//   else {
-    //   throw IllegalInstruction{"Illegal or unsupported opcode."};
-//   }
   return static_cast<opcode2>(0);
 }
 
@@ -372,7 +367,6 @@ InstructionDecoder::getOpcode3() const
     }
   }
   return static_cast<opcode3>(0);
-//   throw IllegalInstruction{"Illegal or unsupported opcode."};
 }
 
 
@@ -476,39 +470,28 @@ InstructionDecoder::getInstructionType() const
 RegNumber
 InstructionDecoder::getA() const
 {
-  /* TODO: implement */
   // gets the bits from position 16 to 20 to get the value of A
   // startBit = 16;
   // lastBit = 20; 
   return selectBits32_8(instructionWord, 16, 20, 0);
-
-
-  // return 0;  /* result undefined */
 }
 
 RegNumber
 InstructionDecoder::getB() const
 {
-  /* TODO: implement */
   // gets the bits from position 11 to 15 to get the value of B
   // startBit = 11;
   // lastBit = 15; 
-  // std::cout << "getBBBBBBBBBBBBB = = = " << selectBits32_8(instructionWord, 11, 15, 0) << '\n';
   return selectBits32_8(instructionWord, 11, 15, 0);
-
-  // return 0;  /* result undefined */
 }
 
 RegNumber
 InstructionDecoder::getD() const
 {
-  /* TODO: implement */
   // gets the bits from position 21 to 25 to get the value of D
   // startBit = 21;
   // lastBit = 25; 
   return selectBits32_8(instructionWord, 21, 25, 0);
-
-  // return 0; /* result undefined */
 }
 
 
@@ -533,7 +516,6 @@ InstructionDecoder::getImmediate() const
     if (getOpcode2() == opcode2::MOVHI)
     {
       imm = selectBits32_8(instructionWord, 0, 15, 0);
-      // imm = imm << 16;
     }
   }
 

@@ -15,13 +15,13 @@ RegValue ControlSignals::add(InstructionDecoder & decoder)
   if (decoder.getOpcode() == opcode::J || decoder.getOpcode() == opcode::JAL ||
       decoder.getOpcode() == opcode::BF || decoder.getOpcode() == opcode::BNF)
   {
-    return decoder.getImmediate() << 2;
+    return decoder.getImmediate() << 2; // shift the immediate value to the left
   }
   else if (decoder.getOpcode() == opcode::JR || decoder.getOpcode() == opcode::JALR)
   {
     return decoder.getB();
   }
-  // return RegValue{0};
+  return RegValue{0};
 }
 
 InstructionType ControlSignals::getType()
@@ -61,12 +61,6 @@ ALUOp ControlSignals::getALUOp() const
     case opcode::SW:
     case opcode::SB:
       return ALUOp::ADD;
-
-    case opcode::SFLES:
-      return ALUOp::LE;
-
-    case opcode::SFNE:
-      return ALUOp::NEQ;
 
     case opcode::ORI:
       return ALUOp::OR;
@@ -113,8 +107,6 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
     case opcode::ORI:
     case opcode::LBZ:
     case opcode::LBS:
-    // case opcode::SFLES:
-    // case opcode::SFNE:
       return InputSelectorA::rs1;
     case opcode::ADD:
       switch (op2) 
@@ -140,9 +132,8 @@ InputSelectorA ControlSignals::getSelectorALUInputA() const
             return InputSelectorA::rs1;
           }
       }
-    // default:
-      // throw IllegalInstruction{"Unknown opcode enum value."};
-      // return InputSelectorA::LAST;
+    default:
+      return InputSelectorA::LAST;
   }
 }
 
@@ -176,8 +167,6 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
           }
       }
     case opcode::JR:
-    // case opcode::SFLES:
-    // case opcode::SFNE:
       return InputSelectorB::rs2;
     case opcode::ADDI:
     case opcode::LBS:
@@ -193,7 +182,6 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
       return InputSelectorB::immediate;
 
     default:
-      // throw IllegalInstruction{"Unknown opcode enum value."};
       return InputSelectorB::LAST;
   }
 }
@@ -224,7 +212,7 @@ InputSelectorB ControlSignals::getSelectorALUInputB() const
     }
  }
 
-
+// determine whether the write input is from ALU or memory
 WriteBackInputSelector ControlSignals::getSelectorWBInput() const
 {
   switch (op) 
@@ -244,7 +232,7 @@ WriteBackInputSelector ControlSignals::getSelectorWBInput() const
   }
 }
         
-        
+// give the instructions that may write
 WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
 {
   switch (op) 
@@ -268,7 +256,7 @@ WriteBackOutputSelector ControlSignals::getSelectorWBOutput() const
   return WriteBackOutputSelector::none;
 }
 
-
+// determine the size of memory of load/store instructions
 uint8_t ControlSignals::getMemSize() const 
 { 
   switch (op) 
@@ -291,11 +279,13 @@ uint8_t ControlSignals::getMemSize() const
   }
 }
 
+// for load instructions
 bool ControlSignals::getMemReadExtend() const 
 {
   return op == opcode::LWS || op == opcode::LWZ || op == opcode::LBS;
 }
 
+// to get the Opcode, immedate and the type of instrucions
 void ControlSignals::setInstruction(const InstructionDecoder & decoder)
 {
   op = decoder.getOpcode();

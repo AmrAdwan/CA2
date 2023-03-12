@@ -1,0 +1,55 @@
+The whole retake of this assignment is done by me (Amr Adwan). 
+
+
+# FROM PREIVIOUS REPORT:
+
+I first worked on the instruction decoder.
+After that I wrote all the instructions in the inst-formatter.cc in order to test the instruction decoder.
+Then, I started working on the stages.cc and stages.h. in order to combine the different components.
+Moreover, I created a ControlSignals class and a source file as was mentioned in the assignment. This class
+was needed to determine the inputs of the ALU and the outputs of the Multiplexer. Also, I created an
+utils.h/.cc where I implemented some new functions that were used in the instruction decoder. Further, 
+I implemented the ALUOp function.  
+
+# What do work
+
+- instruction decoder works properly. 
+- Add.conf, Load.conf and Store.conf were tested and worked fine.
+- Basic.bin was also tested and gives the same output as in level0.test
+
+# What do not work
+
+- hellonods.bin get stuck in an infinite loop  
+- hello.bin always prints an 'h' a do not go through the next character.
+
+
+
+# UPDATE:
+
+Last time the program only worked for basic.bin. So I worked on implementing the missing instructions. i implemented
+instructions such as jump, branch instruction, as well as load and save instruction. Furthermore, I implemented the Shift
+instructions such as SLL and SRA. I also implemented the dealy slots associated with jump/branch statements.
+When I got to the delay slots, I created a variable called `issued` and initialized it with 0, if the statement
+is jump/branch instruction in the decoding phase, the `issued` is incremented by 1.
+`issued` is now equal to 1 on the next clock cycle we check that the value is 1 and increment it by 1.
+Thus, the next instruction after a jumb/branch instruction is always executed in the next clock cycle
+we see that 'issued' equals 2, therefore PC equals NPC; NPC is the PC of the jump/branch statement.
+Then we reset the NPC and issued variables.
+
+
+
+# What do work
+
+- all above plus
+- hellonods.bin works now and prints `hello` on the screen
+- hello.bin works now and prints `hello` on the screen
+- hello4.bin works now and prints `hello` on the screen
+- comp.bin works as well and prints `LX` on the screen
+- comp4.bin works as well and prints `LX` on the screen
+
+(So level 4 was obtained).
+
+
+# What do not work
+
+- pipelining is not implemented!

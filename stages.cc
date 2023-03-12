@@ -71,7 +71,6 @@ InstructionFetchStage::propagate()
 void
 InstructionFetchStage::clockPulse()
 {
-  /* TODO: write necessary fields in pipeline register */
   if_id.PC = PC;
   if_id.instruction = instruction;
   PC += 4;
@@ -88,17 +87,10 @@ dump_instruction(std::ostream &os, const uint32_t instructionWord,
 void
 InstructionDecodeStage::propagate()
 {
-  /* TODO: set instruction word on the instruction decoder */
-
-  /* TODO: need a control signals class that generates control
-   * signals from a given opcode and function code.
-   */
   PC = if_id.PC;
   decoder.setInstructionWord(if_id.instruction);
   signals.setInstruction(decoder);
   if (decoder.getOpcode() != opcode::NOP)
-      // decoder.getInstructionType() == InstructionType::typeR ||
-      // decoder.getInstructionType() == InstructionType::typeS)
   {
     regfile.setRS1(decoder.getA()); // set the value of Register A
     regfile.setRS2(decoder.getB()); // set the value of Register B
@@ -128,8 +120,7 @@ InstructionDecodeStage::propagate()
     std::cerr << decoder << std::endl;
   }
 
-  /* TODO: register fetch and other matters */
-
+  // if instruction is JAL of JR then the destination register is 9
   if (decoder.getOpcode() == opcode::JAL) 
   {
     regD = 9;
@@ -138,12 +129,9 @@ InstructionDecodeStage::propagate()
   }
   if (decoder.getOpcode() == opcode::JR ) 
   {
-    // regfile.setRS1( 9 );
-    // id_ex.regB = 9;
     regfile.setRS2(9);
 
   }
-  /* TODO: perhaps also determine and write the new PC here? */
 }
 
 void InstructionDecodeStage::clockPulse()
@@ -152,7 +140,6 @@ void InstructionDecodeStage::clockPulse()
   if (! pipelining || (pipelining && PC != 0x0))
     ++nInstrIssued;
 
-  /* TODO: write necessary fields in pipeline register */
   id_ex.PC = PC;
   id_ex.signals = signals;
   id_ex.regA = regfile.getReadData1();
@@ -181,70 +168,50 @@ void InstructionDecodeStage::clockPulse()
       if (flag)
       {
         issued = 1;
-        NPC = PC + signals.add(decoder);
+        NPC = PC + signals.add(decoder); // PC value added to the offset value
       }
       break;
     case opcode::BNF:
       if (!flag)
       {
         issued = 1;
-        NPC = PC + signals.add(decoder);
+        NPC = PC + signals.add(decoder); // PC value added to the offset value
       }
       break;
     case opcode::MACRC:
       if (decoder.getOpcode2() == opcode2::MOVHI)
       {
-        if (((id_ex.immediate >> 15) & 0b1) == 0b1)
+        if (((id_ex.immediate >> 15) & 0b1) == 0b1) // if the highest bit 1 is then sign extend
         {
-          id_ex.immediate |= 0xffff0000;
+          id_ex.immediate |= 0xffff0000; // Sign extenstion 
         }
       }
       break;
     case opcode::JAL:
       issued = 1;
-      NPC = PC + signals.add(decoder);
-      linkReg = PC + 8;
+      NPC = PC + signals.add(decoder); // PC value added to the offset value
+      linkReg = PC + 8; // PC + 8 for dealy slots
       break;
     case opcode::JR:
       issued = 1;
-      NPC = id_ex.regB;
+      NPC = id_ex.regB; // PC value get the value of register B
       break;
     case opcode::J:
       issued = 1;
-      NPC = PC + signals.add(decoder);
+      NPC = PC + signals.add(decoder); // PC value added to the offset value
       break;
     case opcode::SFEQ:
-      flag = (id_ex.regA == id_ex.regB);
+      flag = (id_ex.regA == id_ex.regB); // flag is true if register A and register B are equal
       break;
     case opcode::SFLES:
-      flag = (id_ex.regA <= id_ex.regB);
+      flag = (id_ex.regA <= id_ex.regB); // flag is true if register A less than or equal to register B
       break;
     case opcode::SFNE:
-      flag = (id_ex.regA != id_ex.regB);
+      flag = (id_ex.regA != id_ex.regB); // flag is true if register A and register B are NOT equal
       break;
     case opcode::SFGES:
-      flag = (id_ex.regA >= id_ex.regB);
+      flag = (id_ex.regA >= id_ex.regB); // flag is true if register A greater than or equal to register B
       break;
-
-    // case opcode::ADD:
-    //   if (decoder.getOpcode2() == opcode2::SLL)
-    //   {
-    //     id_ex.regD = id_ex.regA << (id_ex.regB & 0b1111);
-    //   }
-    //   if (decoder.getOpcode2() == opcode2::EXTHZ)
-    //   {
-    //     id_ex.regB &= 0b1111;
-    //     id_ex.regA >>= id_ex.regB;
-    //     if (static_cast<int32_t>(id_ex.regA) & 0b10000)
-    //     { 
-    //       id_ex.regA |= 0xffffffe0;
-    //       id_ex.regD = id_ex.regA;
-    //     }
-    //     else 
-    //     {
-    //       id_ex.regD = id_ex.regA;        
-    //     }
-    //   }
   }
 
   id_ex.PC = PC;
@@ -258,7 +225,7 @@ void InstructionDecodeStage::clockPulse()
   id_ex.action_ALU = signals.getALUOp(); // get the ALU operation
   id_ex.actionWBIn = signals.getSelectorWBInput();
   id_ex.memReadExtend = signals.getMemReadExtend();
-  id_ex.readSize = signals.getMemSize();
+  id_ex.readSize = signals.getMemSize(); // get the memory size for load/store instructions
 }
 
 /*
@@ -304,16 +271,17 @@ ExecuteStage::propagate()
         alu.setB(mux.getOutput());
 
     }
+    // set ALU operation beased on the above
     alu.setOp(id_ex.action_ALU);
   }
-
+  // set the ALU inputs if the instruction is MOVHI
   if (signals.getopcode() == opcode::MACRC)
   {
     if (signals.getopcode2() == opcode2::MOVHI)
     {
       alu.setA(immediate);
-      alu.setB(16);
-      alu.setOp(ALUOp::SLL);
+      alu.setB(16); // to shift the immediate with 16 bits
+      alu.setOp(ALUOp::SLL); // Set the ALU operation as shift left logic
     }
   }
 
@@ -321,18 +289,18 @@ ExecuteStage::propagate()
   {
     if (signals.getopcode2() == opcode2::SLL)
     {
-      regB &= 0b1111;
+      regB &= 0b1111; // to ignore the fifth bit of register B
       alu.setA(regA);
       alu.setB(regB);
-      alu.setOp(ALUOp::SLL);
+      alu.setOp(ALUOp::SLL); // Set the ALU operation as shift left logic
     }
 
     if (signals.getopcode2() == opcode2::EXTHZ)
     {
-      regB &= 0b1111;
+      regB &= 0b1111; // to ignore the fifth bit of register B
       alu.setA(regA);
       alu.setB(regB);
-      alu.setOp(ALUOp::SRA);
+      alu.setOp(ALUOp::SRA); // Set the ALU operation as shift right arithmetic
     }
   }
   
@@ -341,11 +309,6 @@ ExecuteStage::propagate()
 void
 ExecuteStage::clockPulse()
 {
-  /* TODO: write necessary fields in pipeline register. This
-   * includes the result (output) of the ALU. For memory-operations
-   * the ALU computes the effective memory address.
-   */
-  
   if (signals.getopcode() != opcode::BF && signals.getopcode() != opcode::JR &&
       signals.getopcode() != opcode::J &&  signals.getopcode() != opcode::JALR && 
       signals.getopcode() != opcode::BNF && signals.getopcode() != opcode::NOP &&
@@ -359,19 +322,6 @@ ExecuteStage::clockPulse()
   {
     ex_m.ALUout = linkReg;
   } 
-
-
-  // if (signals.getopcode() == opcode::ADD)
-  // {
-  //   if (signals.getopcode2() == opcode2::EXTHZ)
-  //   {
-  //     if (ex_m.ALUout & 0b10000)
-  //     {
-  //       ex_m.ALUout |= 0xffffffe0;
-  //       // std::cout << "aluouttt1111 = " << uint32_t(ex_m.ALUout) << '\n';
-  //     }
-  //   }
-  // }
 
   ex_m.PC = PC;
   ex_m.actionMem = actionMem;
@@ -408,22 +358,21 @@ MemoryStage::propagate()
 
   if (signals.getopcode() == opcode::JAL)
   {
-    dataMemory.setAddress(regD);
+    dataMemory.setAddress(regD); // memory address is register D
   }
   if (signals.getType() == InstructionType::typeS)
   {
-    dataMemory.setWriteEnable(true);
-    dataMemory.setAddress(ALUout);
-    // std::cout << "readsize = " << int(ex_m.readSize) << '\n';
-    dataMemory.setSize(ex_m.readSize);
+    dataMemory.setWriteEnable(true); // enable writing
+    dataMemory.setAddress(ALUout); // address is the result of the ALU
+    dataMemory.setSize(ex_m.readSize); // set size with the suitable size based on instruction
     dataMemory.setDataIn(regB);
   }
 
   if (signals.getopcode() == opcode::LWZ || signals.getopcode() == opcode::LBS
       || signals.getopcode() == opcode::LBZ)
   {
-    dataMemory.setAddress(ALUout);
-    dataMemory.setSize(ex_m.readSize);
+    dataMemory.setAddress(ALUout); // address is the result of the ALU
+    dataMemory.setSize(ex_m.readSize); // set size with the suitable size based on instruction
   }
 }
 
@@ -436,8 +385,8 @@ MemoryStage::clockPulse()
     dataMemory.setDataIn(regD);
     m_wb.memRead = dataMemory.getDataOut(memReadExtend);
 
-    // High-order bits of the loaded value are replaced
-    // with bit 7 of the loaded value ( if it is 1 )
+    /* High-order bits of the loaded value are replaced
+       with bit 7 of the loaded value ( if it is 1 ) */
     if(signals.getopcode() == opcode::LBS &&
        static_cast<int>((m_wb.memRead >> 7) & 0b1) == 1)
     {
@@ -448,8 +397,6 @@ MemoryStage::clockPulse()
   } 
   if (actionMem == MemorySelector::store) 
   {
-    // dataMemory.setDataIn(regB);
-    // dataMemory.setWriteEnable(true); // to let the store instruction to write
     dataMemory.clockPulse();
     dataMemory.setWriteEnable(false);
   }
@@ -473,10 +420,6 @@ WriteBackStage::propagate()
     ++nInstrCompleted;
   signals = m_wb.signals;
   linkReg = m_wb.linkReg;
-
-  /* TODO: configure write lines of register file based on control
-   * signals
-   */
   actionWBOut = m_wb.actionWBOut;
   regfile.setRD(m_wb.regD);
 
@@ -484,7 +427,7 @@ WriteBackStage::propagate()
       signals.getopcode() == opcode::LBS ||
       signals.getopcode() == opcode::LBZ)
   {
-    regfile.setWriteData(m_wb.memRead);
+    regfile.setWriteData(m_wb.memRead); // wrtie based on suitable size
   }
 
   if (signals.getopcode() != opcode::NOP && signals.getType() != InstructionType::typeS)
@@ -505,7 +448,6 @@ WriteBackStage::propagate()
 void
 WriteBackStage::clockPulse()
 {
-  /* TODO: pulse the register file */
   if (actionWBOut == WriteBackOutputSelector::write) 
   { 
     regfile.setWriteEnable(true);
